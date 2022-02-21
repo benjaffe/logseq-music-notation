@@ -1,0 +1,24 @@
+{
+  "name": "logseq-abc-notation",
+  "version": "0.0.1",
+  "description": "abc-notation for all your musicians out there",
+  "author": "Ben Jaffe",
+  "license": "MIT",
+  "scripts": {
+    "dev": "parcel ./index.html --public-url ./",
+    "build": "parcel build --public-url . --no-source-maps index.html"
+  },
+  "devDependencies": {
+    "@logseq/libs": "^0.0.1-alpha.31",
+    "parcel": "^2.0.0"
+  },
+  "dependencies": {
+    "@folkdb/abc-render-svg": "^1.0.1",
+    "abcjs": "^5.12.0"
+  },
+  "logseq": {
+    "id": "_km4vf288u",
+    "main": "dist/index.html",
+    "icon": "./logo.png"
+  }
+}
