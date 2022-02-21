@@ -1,195 +1,68 @@
 import '@logseq/libs';
+import {BlockEntity} from '@logseq/libs/dist/LSPlugin.user';
 import abcjs from 'abcjs';
+import crypto from 'crypto';
+import {v4 as uuid} from 'uuid';
 
-const uniqueIdentifier = () =>
-  Math.random()
-    .toString(36)
-    .replace(/[^a-z]+/g, '');
-
-const getHash = (s) =>
-  s.split('').reduce((a, b) => {
-    a = (a << 5) - a + b.charCodeAt(0);
-    return a & a;
-  }, 0);
-/**
- * main entry
- */
 async function main() {
-  logseq.App.showMsg('hello, abc notation!');
-
-  // logseq.provideStyle(`
-  //   .abc-notation-btn {
-  //      border: 1px solid var(--ls-border-color);
-  //      white-space: initial;
-  //      padding: 2px 4px;
-  //      border-radius: 4px;
-  //      user-select: none;
-  //      cursor: default;
-  //      display: flex;
-  //      align-content: center;
-  //   }
-
-  //   .abc-notation-btn.is-start:hover {
-  //     opacity: .8;
-  //   }
-
-  //   .abc-notation-btn.is-start:active {
-  //     opacity: .6;
-  //   }
-
-  //   .abc-notation-btn.is-start {
-  //     padding: 3px 6px;
-  //     cursor: pointer;
-  //   }
-
-  //   .abc-notation-btn.is-pending {
-  //     padding-left: 6px;
-  //     width: 84px;
-  //     background-color: #f6dbdb;
-  //     border-color: #edbdbd;
-  //     color: #cd3838;
-  //   }
-
-  //   .abc-notation-btn.is-done {
-  //     width: auto;
-  //     background-color: #defcf0;
-  //     border-color: #9ddbc7;
-  //     color: #0F9960;
-  //   }
-  // `);
-
-  // entries
   logseq.Editor.registerSlashCommand('ABC Music Notation', async () => {
-    console.log(`~~registered`);
     await logseq.Editor.insertAtEditingCursor(
-      `{{renderer :music-abc_${uniqueIdentifier()}}}`,
+      `{{renderer :music-abc_${uuid()}}}`,
     );
 
     const currBlock = await logseq.Editor.getCurrentBlock();
-
-    await logseq.Editor.insertBlock(
-      currBlock.uuid,
-      `\`\`\`music-abc
-
-\`\`\``,
-      {sibling: false, before: false},
-    );
+    await logseq.Editor.insertBlock(currBlock.uuid, '```music-abc\n\n```', {
+      sibling: false,
+      before: false,
+    });
   });
 
-  console.log(`~~about to register macro`);
+  logseq.App.onMacroRendererSlotted(async (event) => {
+    try {
+      const {slot, payload} = event;
+      const [type] = payload.arguments;
 
-  const renderABCThing = async (type, payload, uuid, slot) => {
-    console.log(`~~renderABCThing, `, type, uuid, payload);
-    // await logseq.Editor.editBlock(payload.uuid);
-    // await logseq.Editor.exitEditingMode();
+      // only handle music notation renderers
+      if (!type.startsWith(':music-abc_')) return;
 
-    const abcBlock = await logseq.Editor.getBlock(uuid);
-    const matchData = abcBlock.content.match(/```music-abc(.|\n)*?```/gm);
-
-    let toDecode = matchData[0];
-    toDecode = toDecode.replace('```music-abc', '').replace('```', '');
-
-    const text = toDecode;
-
-    const renderBlock = async (html: string = '') => {
-      await logseq.Editor.updateBlock(
-        payload.uuid,
-        `<div style="background: white;">${html}</div>
-{{renderer ${type}}}`,
+      const renderBlockId = payload.uuid;
+      const renderBlock = await logseq.Editor.getBlock(renderBlockId);
+      const renderBlockWithChildren = await logseq.Editor.getBlock(
+        renderBlockId,
+        {
+          includeChildren: true,
+        },
       );
-    };
-    requestAnimationFrame(() => {
-      abcjs.renderAbc('app', text);
 
-      // console.log(`~~abcBlock`, abcBlock, text);
+      const dataBlockId = (renderBlockWithChildren.children[0] as BlockEntity)
+        ?.uuid;
+      const dataBlock = await logseq.Editor.getBlock(dataBlockId);
+      const content = dataBlock.content.match(/```music-abc(.|\n)*?```/gm);
 
-      // console.log(`~~renderblock`, type, uuid, payload);
-      // const elem = document.createElement('div');
-      // const tempRendererId = `rendererFor${type}`;
-      // elem.id = tempRendererId;
-      // abcjs.renderAbc('root', text);
-      // document.getElementById('root').appendChild(elem);
-      // elem.style.position = 'absolute';
-      // elem.style.zIndex = '1000';
-      // elem.style.top = '0';
-      // elem.style.width = '400px';
-      const html = document.getElementById('app').innerHTML;
-      console.log('~~~~html', html.length);
-      renderBlock(html);
-    });
-  };
+      // isolate the markup
+      const abcText = content[0].replace('```music-abc', '').replace('```', '');
 
-  logseq.App.onMacroRendererSlotted(async (opts) => {
-    const {slot, payload} = opts;
-    console.log(`~~opts`, opts);
+      abcjs.renderAbc('app', abcText);
+      const abcSvg = document.getElementById('app').innerHTML;
 
-    const [type, text] = payload.arguments;
-    console.log(`~~hi, onMacroRendererSlotted`, type, slot, payload);
-    // const id = type.split('_')[1]?.trim();
-    // const abcId = `abc_${id}`;
+      const hash = crypto
+        .createHash('md5')
+        .update(abcText || '')
+        .digest('hex');
+      logseq.provideUI({
+        key: `music-abc-${hash}`,
+        slot,
+        reset: true,
+        template: `<div style="background:white;">${abcSvg}</div>`,
+      });
 
-    if (!type.startsWith(':music-abc_')) return;
-
-    const dataBlock = await logseq.Editor.getBlock(payload.uuid, {
-      includeChildren: true,
-    });
-
-    console.log(`~~`, dataBlock);
-    console.log(`~~child`, dataBlock.children[0]);
-    console.log(`~~type`, type);
-    console.log(`~~payload`, payload);
-    console.log(`~~dataBlock.children[0].uuid['uuid']`, dataBlock);
-    await renderABCThing(type, payload, dataBlock.children[0]?.uuid, slot);
-
-    console.log(`~~slot id`, slot, text);
-
-    // return logseq.provideUI({
-    //   key: `music-abc-${getHash(text)}`,
-    //   slot,
-    //   reset: true,
-    //   template: `<div style="width: 100px;height:100px;background:red;">${text}</div>`,
-    // });
-
-    // logseq.provideStyle(`
-    //   .renderBtn {
-    //     border: 1px solid black;
-    //     border-radius: 8px;
-    //     padding: 3px;
-    //     font-size: 80%;
-    //     background-color: white;
-    //     color: black;
-    //   }
-    //   .renderBtn:hover {
-    //     background-color: black;
-    //     color: white;
-    //   }
-    // `);
-
-    // logseq.App.onMacroRendererSlotted(({slot, payload}) => {
-    //   console.log(`~~ `, slot, payload);
-    //   const [type, text] = payload.arguments;
-    //   if (!type?.startsWith('#+BEGIN_ABC\n')) return;
-    //   console.log(`~~ onMacroRendererSlotted`, payload.arguments);
-
-    //   if (text?.trim()) {
-    //     return logseq.provideUI({
-    //       key: `music-abc-${getHash(text)}`,
-    //       slot,
-    //       reset: true,
-    //       template: `
-    //         <div
-    //         style="min-width: 10px; min-height: 10px; background: red;"
-    //         class="abc-notation-btn"
-    //         data-slot-id="${slot}"
-    //         data-block-uuid="${payload.uuid}">
-    //         ${abcjs.renderAbc(text)}
-    //         </div>
-    //       `,
-    //     });
-    //   }
-
-    // reset slot ui
-    // renderABC({slotId: slot, text});
+      // tell the renderer block to update, even though we aren't
+      // changing the contents. This causes it to rerender.
+      const rendererContent = renderBlock?.content;
+      await logseq.Editor.updateBlock(renderBlockId, rendererContent);
+    } catch (err) {
+      console.error(`Music notation rendering failed`, err);
+    }
   });
 }
 
