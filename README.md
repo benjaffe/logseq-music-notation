@@ -1,21 +1,15 @@
-## ABC Notation
+## Music Notation
 
-Renders ABC Notation as Sheet Music
+Renders Music in Logseq using ABC Notation
 
 ### Demo
 
-![demo](./demo.gif)
+![icon](./icon.png)
 
 ##### Logseq.App
 
 - `registerSlashCommand: (tag: string, action: BlockCommandCallback | Array<SlashCommandAction>) => boolean`
 - `onMacroRendererSlotted: IUserSlotHook<{ payload: { arguments: Array<string>, uuid: string, [key: string]: any } }>`
-
-> ⚠️ The current implementation may have performance issues,
-> especially when there are too many running timer instances.
-> That's because time ticker needs messaging frequently between
-> host and plugin sandbox. We are exploring better solutions for
-> the rendering of block content partly.
 
 ### Running the Sample
 
