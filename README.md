@@ -16,18 +16,6 @@ Note: there are two edit modes for code blocks, and one behaves better than the 
 Editing the music markup in the **normal** block editing mode, as pictured below, **will** update as you type, so you should prefer using this one. To get into this mode, you can enter the block from below with the arrow key, or you can click slightly above the code box.
 ![abc-better-edit-mode](./abc-better-edit-mode.png)
 
-##### Logseq.App
-
-- `registerSlashCommand: (tag: string, action: BlockCommandCallback | Array<SlashCommandAction>) => boolean`
-- `onMacroRendererSlotted: IUserSlotHook<{ payload: { arguments: Array<string>, uuid: string, [key: string]: any } }>`
-
-### Running the Sample
-
-> 🏷 Minimal version of App [0.4.6](https://github.com/logseq/logseq/releases/tag/0.4.6) !
-
-- `yarn && yarn build` in terminal to install dependencies.
-- `Load unpacked plugin` in Logseq Desktop client.
-
 ### License
 
 MIT
